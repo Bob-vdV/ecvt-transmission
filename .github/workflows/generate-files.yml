@@ -1,0 +1,30 @@
+name: Generate STL files
+run-name: Generate STL files
+on:
+  push:
+    branches:
+      - dev
+  pull_request:
+    branches:
+      - main
+      - dev
+jobs:
+  generation:
+    runs-on: ubuntu-latest
+    env:
+      QT_QPA_PLATFORM: offscreen
+    steps:
+      - name: Install openscad
+        run: sudo snap install openscad-nightly
+
+      - name: Set up python
+        uses: actions/setup-python@v5 
+        with:
+          python-version: '3.11'
+          
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Run python script
+        run: |
+          python ${{ github.workspace }}/make.py --openscad_path="openscad-nightly"

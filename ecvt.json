@@ -1,0 +1,43 @@
+{
+    "fileFormatVersion": "1",
+    "parameterSets": {
+        "v2": {
+            "base_height": "6",
+            "base_length": "200",
+            "base_width": "80",
+            "bore": "8",
+            "carrier_height": "4",
+            "carrier_offset": "1.5",
+            "clearance": "0",
+            "coupler_nut_height": "2.1499999999999999",
+            "coupler_screw_diam": "3.5",
+            "feet_depth": "1",
+            "feet_diam": "17",
+            "feet_offset": "3",
+            "handle_bore_offset": "4",
+            "handle_height": "20",
+            "handle_length": "25",
+            "handle_thickness": "8",
+            "helix_angle": "30",
+            "holder_thickness": "8",
+            "ice_gear_teeth": "36",
+            "inter_play": "0.80000000000000004",
+            "loose_tol": "0.80000000000000004",
+            "modul": "1",
+            "number_planets": "4",
+            "pip_clearance": "0.10000000000000001",
+            "planet_teeth": "20",
+            "rim_width": "6",
+            "ring_offset": "4",
+            "selected_part": "assembly",
+            "shaft_coupler_wall": "3",
+            "sun_teeth": "40",
+            "text_depth": "1.3999999999999999",
+            "text_offset": "2",
+            "text_size": "8",
+            "tiny": "0.001",
+            "tol": "0.40000000000000002",
+            "width": "10"
+        }
+    }
+}

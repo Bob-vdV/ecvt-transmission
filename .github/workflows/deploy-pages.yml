@@ -1,0 +1,32 @@
+name: "Deploy to GH pages"
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.openscad-deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Checkout pages action
+        uses: actions/checkout@v5
+        with:
+          repository: Bob-vdV/openscad-gh-pages
+          path: ./openscad-gh-pages
+      - name: Deploy openscad customizer
+        uses: ./openscad-gh-pages
+        id: openscad-deployment
+        with:
+          filename: "centercap_main.scad"
+          libraries: "deploy/libraries.json"
