@@ -28,5 +28,4 @@ jobs:
         uses: ./openscad-gh-pages
         id: openscad-deployment
         with:
-          filename: "centercap_main.scad"
-          libraries: "deploy/libraries.json"
+          filename: "ecvt.scad"
