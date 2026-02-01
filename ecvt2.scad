@@ -1,35 +1,27 @@
-include <gears.scad>
-
 /*
+E-CVT model.
+
+Largely based on model by Consulab:
 https://www.consulab.com/products#cat_l3-hybrid-electric-vehicle_prod_em-200-29-053137-hybrid-planetary-gearset-trainer
 
-Sun gear:     MG2   (green)
+Sun gear:     MG1   (green)
 Planet gears: ICE   (red)
-Ring gear:    MG1   (blue)
+Ring gear:    MG2   (blue)
 
-Output: Ring gear
-
-
-TODO:
- [x] Shaft for planet gears
- [x] Gear for MG2
- [x] Gear for output
- [x] Make shaft coupler for handles
- [x] Shaft coupler for carrier
- [x] Dial in planet shaft
- [x] Dial in sun shaft
-
-
+Output: Ring gear (Yellow)
 */
+
+include <gears.scad>
 
 /* [General] */
 tiny = 1e-3;
-selected_part = "assembly"; // ["assembly", "planetary_gear", "carrier",  "sun_shaft", "planet_shaft", "shaft_handle", "small_gear", "small_shaft", "small_shaft_h", "base"] 
+selected_part = "assembly"; // ["assembly", "planetary_gear", "carrier",  "sun_shaft", "planet_shaft", "shaft_handle", "small_gear", "small_gear_reverse", "small_shaft", "small_shaft_h", "base"] 
 
 /* [Tolerances] */
 tol = 0.4; // For things that need to stick together 
 loose_tol = 0.8; // For things that need to rotate freely
-clearance = 0.2; // Used in gear library
+clearance = 0.0; // Used in gear library
+pip_clearance = 0.1;// Looser clearance for print in place (planetary) gears
 
 /* [Gear Parameters] */
 modul = 1;
@@ -41,7 +33,7 @@ rim_width = 6;
 bore = 8;
 helix_angle = 30;
 
-inter_play = 2; // distance between two things on a shaft
+inter_play = 0.8; // distance between two things on a shaft
 
 
 /* [Gear diameters] */
@@ -63,7 +55,11 @@ echo("planet d", planet_diam);
 ring_offset = 4;
 base_width = 80;
 base_length = 200;
-base_height = 8;
+base_height = 6;
+
+feet_diam = 17;
+feet_depth = 1;
+feet_offset = 3;
 
 /* [Shaft holders] */
 holder_thickness = 8;
@@ -80,20 +76,19 @@ shaft_coupler_diam = bore + tol + 2*shaft_coupler_wall;
 
 /* [Handle] */
 handle_thickness = 8;
-handle_length = 20;
+handle_length = 25;
 handle_bore_offset = 4;
-handle_height = 15;
+handle_height = 20;
 
 /* [Sun gear shaft] */
 sun_shaft_height = ring_offset + outer_diam / 2;
 sun_shaft_length = width + shaft_coupler_height + 2 * inter_play + holder_thickness + handle_thickness;
 sun_shaft_end_diam = bore + 4;
-sun_shaft_end_thickness = 0;
 
 /* [Planet gears carrier] */
 carrier_width = bore + 3;
 carrier_height = 4;
-carrier_offset = sun_shaft_end_thickness + 1;
+carrier_offset = 1.5;
 
 /* [Planet gears shaft] */
 planet_shaft_length = carrier_height + shaft_coupler_height + holder_thickness + handle_thickness + 2*inter_play;//sun_shaft_length - carrier_offset; // TODO change
@@ -111,6 +106,11 @@ small_shaft_offset = -(holder_thickness + inter_play);
 
 small_first_height = ice_gear_diam/2 + ring_offset;
 
+/* [Text] */
+text_size = 8;
+text_depth = 1.4;
+text_offset = 2;
+
 /* ------ FUNCTIONS ------ */
 function gear_diam(num_teeth) = num_teeth / modul;
 
@@ -124,17 +124,20 @@ module ShaftHole() {
 }
 
 module ShaftCoupler() { 
+  d_hex= shaft_coupler_diam * 2 / sqrt(3);
+
   difference() {
-    cylinder(h=shaft_coupler_height, d=shaft_coupler_diam);
+    rotate([0, 0, -15])
+    cylinder(h=shaft_coupler_height, d=d_hex, $fn=6);
     
     cylinder(h=shaft_coupler_height + tiny, d=bore+tol);
     
     translate([0, 0, shaft_coupler_height/2])
     rotate([90, 0, 45]) {
-        cylinder(h=shaft_coupler_diam+tiny, d=coupler_screw_diam, center=true);
+      cylinder(h=shaft_coupler_diam+tiny, d=coupler_screw_diam, center=true);
   
-        translate([0, 0, -shaft_coupler_diam/2])
-        cylinder(h=coupler_nut_height, d=coupler_nut_diam, $fn=6);
+      translate([0, 0, -shaft_coupler_diam/2])
+      cylinder(h=coupler_nut_height, d=coupler_nut_diam, $fn=6);
     }
   }
 }
@@ -161,20 +164,29 @@ module ShaftHolder(hole_height){
   }
 }
 /* ------ PARTS ------ */
+
+module PlanetaryGearPIP() {
+  include <gears.scad>
+  // Extra import to set higher clearance
+  clearance = pip_clearance;
+  
+  planetary_gear(
+    modul=modul, 
+    sun_teeth=sun_teeth, 
+    planet_teeth=planet_teeth, 
+    number_planets=number_planets, 
+    width=width, 
+    rim_width=rim_width, 
+    bore=bore+tol,
+    helix_angle=helix_angle,
+    together_built=true, 
+    optimized=false
+  );    
+}
+
 module PlanetaryGear(){
   intersection() {
-    planetary_gear(
-      modul=modul, 
-      sun_teeth=sun_teeth, 
-      planet_teeth=planet_teeth, 
-      number_planets=number_planets, 
-      width=width, 
-      rim_width=rim_width, 
-      bore=bore+tol,
-      helix_angle=helix_angle,
-      together_built=true, 
-      optimized=false
-    );    
+    PlanetaryGearPIP();
     
     herringbone_gear(
       modul=modul, 
@@ -196,12 +208,16 @@ module Carrier() {
   difference() {
     for(i = [0:number_planets-1]) {
       rotate([0, 0, i * 360 / number_planets])
-      translate([(sun_diam + planet_diam)/2, 0, 0])
-      cylinder(h=width+carrier_offset, d=bore-loose_tol);
+      translate([(sun_diam + planet_diam)/2, 0, 0]){
+        cylinder(h=width, d=bore-loose_tol);
+        
+        translate([0, 0, width])
+        cylinder(h=carrier_offset, d1=bore-loose_tol, d2=carrier_width);
+      }
       
       translate([0, 0, width + carrier_offset])
       hull() {
-        rotate([0, 0, i*360/number_planets])
+        rotate([0, 0, i * 360 / number_planets])
         translate([(sun_diam + planet_diam)/2, 0, 0])
         cylinder(carrier_height, d=carrier_width);
       
@@ -235,9 +251,6 @@ module SunShaft() {
       translate([0, 0, width + shaft_coupler_height / 2])
       ShaftHole();
     }
-    
-    translate([0, 0, -sun_shaft_end_thickness])
-    cylinder(h=sun_shaft_end_thickness, d=sun_shaft_end_diam);
   }
   }
 }
@@ -258,6 +271,31 @@ module PlanetShaft() {
   }
 }
 
+module HandleHandle(){
+  y = 1;
+  x = 3;
+ 
+  translate([0, 0, y])
+  rotate_extrude(){
+    polygon([
+      [bore/2, 0],
+      [bore/2 + x/2, x/2],
+      [bore/2, x]
+    ]);
+  }
+  
+  translate([0, 0, handle_thickness - y - x])
+  rotate_extrude(){
+    polygon([
+      [bore/2, 0],
+      [bore/2 + x/2, x/2],
+      [bore/2, x]
+    ]);
+  }
+  
+  cylinder(h=handle_height+handle_thickness, d=bore+tiny);
+}
+
 module ShaftHandle() {  
   shaft_diam = bore + tol + 2 * handle_bore_offset;
   
@@ -272,7 +310,6 @@ module ShaftHandle() {
     
     cylinder(h=handle_thickness, d=bore + tol);
     
-    
     // Slot or hole for shaft attachment
     translate([0, 0, handle_thickness/2])
     rotate([90, 0, 0]) {
@@ -280,13 +317,17 @@ module ShaftHandle() {
       translate([0, 0, -shaft_diam/2])
       cylinder(h=coupler_nut_height, d=coupler_nut_diam, $fn=6);
     }
-    
+        
+    translate([handle_length, 0, 0])
+    minkowski(){
+      HandleHandle();
+      sphere(d=loose_tol);
+    }
   }
   
-  // TODO print in place rotating handle
-  translate([handle_length, 0, 0])
-  cylinder(h=handle_height, d=bore);
-  
+  translate([handle_length, 0, -handle_thickness]) {
+    HandleHandle();
+  }
 }
 
 module SmallGear(reverse=false) {
@@ -320,11 +361,51 @@ module SmallShaft(handle=false) {
   }
 }
 
+module BaseText(txt) {
+  rotate([0, 0, 90])
+  linear_extrude(text_depth){
+    text(txt, size=text_size, halign="center", valign="top");
+  }
+}
+
 module Base(){
   color("gray"){
-  translate([-base_width/2 + width/2, -base_length/2, 0])
-  cube([base_width, base_length, base_height]);
   
+  difference() {
+    translate([-base_width/2 + width/2, - base_length/2, 0])
+    cube([base_width, base_length, base_height]);
+    
+    // Holes for rubber feet
+    translate([width/2, 0, 0])
+    for(x = [-1, 1]) {
+      for (y = [-1, 1]) {
+        translate([
+          x * (base_width/2 - feet_diam/2 - feet_offset), 
+          y * (base_length/2 - feet_diam/2 - feet_offset),
+          0
+        ])
+        cylinder(h=feet_depth, d=feet_diam);
+    
+      }
+    }
+  
+    // Embossed text
+    translate([0, 0, base_height - 1 + tiny]) {
+      translate([base_width/2 - text_size/2, 0, 0]) { // TODO technically wrong bc +width
+      translate([0, -ice_input_gear_x, 0])
+      BaseText("OUT");
+
+      BaseText("ICE");
+
+      translate([0, ice_input_gear_x, 0])
+      BaseText("MG2");
+      }
+      
+      translate([-base_width/2 + width/2 + text_size + text_offset, 0, 0])
+      rotate([0, 0, 180])
+      BaseText("MG1");
+    }
+  }
   
   // Holders
   translate([0, 0, base_height]) {
@@ -385,6 +466,33 @@ module Base(){
     translate([small_shaft_length - holder_thickness, 0, 0])
     ShaftHolder(sun_shaft_height);
     }
+    
+    // Groove for guiding ring gear
+    x = 8;
+    y = 40;
+    
+    wTot = width + 2*(x + inter_play);
+    
+    translate([width/2, 0, 0])
+    difference() {
+      rotate([90, 0, 90])
+      linear_extrude(wTot, center=true) {
+        polygon([
+          [-y/2, 0],
+          [0, ring_offset + ring_diam/2],
+          [y/2, 0]
+        ]);
+      }
+      
+      translate([0, 0, ring_offset + ring_diam/2]) 
+      rotate([0, 90, 0]) {
+        // Side walls
+        cylinder(h=wTot+tiny, d=ring_diam  - rim_width - modul*2, center=true);
+        
+        // Inner groove
+        cylinder(h=width+2*inter_play, d=ring_offset*2 + ring_diam, center=true);
+      }
+    }   
   }
   }
 }
@@ -419,7 +527,6 @@ translate([0, 0, base_height]) {
     translate([0, 0, width + carrier_offset + planet_shaft_length])
     rotate([0, 0, 45])
     ShaftHandle();
-    
   }
 
   
@@ -431,15 +538,12 @@ translate([0, 0, base_height]) {
       0, 
       ice_gear_x, 
       0
-    ]) {      
-      //rotate([0, 0, 180 / ice_gear_teeth]) // TODO not exact!
-        
+    ]) {             
       color("blue") 
       SmallGear();
       
       color("darkblue")
       SmallShaft(false);
-    
     }
     
     // Input gear
@@ -471,15 +575,12 @@ translate([0, 0, base_height]) {
       0, 
       -ice_gear_x, 
       0
-    ]) {      
-      //rotate([0, 0, 180 / ice_gear_teeth]) // TODO not exact!
-        
+    ]) {        
       color("yellow") 
       SmallGear();
       
       color("gold")
       SmallShaft(false);
-    
     }
     
     // Input gear
@@ -518,6 +619,8 @@ if(selected_part == "assembly"){
   ShaftHandle();
 } else if (selected_part == "small_gear") {
   SmallGear();
+} else if (selected_part == "small_gear_reverse") {
+  SmallGear(reverse=true);
 } else if (selected_part == "small_shaft") {
   SmallShaft();
 } else if (selected_part == "small_shaft_h") {
