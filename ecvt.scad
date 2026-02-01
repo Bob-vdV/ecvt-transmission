@@ -11,7 +11,7 @@ Ring gear:    MG2   (blue)
 Output: Ring gear (Yellow)
 */
 
-include <gears.scad>
+include <gears/gears.scad>
 
 /* [General] */
 tiny = 1e-3;
@@ -166,7 +166,7 @@ module ShaftHolder(hole_height){
 /* ------ PARTS ------ */
 
 module PlanetaryGearPIP() {
-  include <gears.scad>
+  include <gears/gears.scad>
   // Extra import to set higher clearance
   clearance = pip_clearance;
   
